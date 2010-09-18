@@ -1,7 +1,7 @@
 
 
 This archive contains the distribution Plack-Middleware-Auth-Htpasswd,
-version 0.01:
+version 0.02:
 
   http basic authentication through apache-style .htpasswd files
 

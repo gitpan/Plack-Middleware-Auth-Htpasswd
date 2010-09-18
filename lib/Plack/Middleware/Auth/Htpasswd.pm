@@ -1,11 +1,11 @@
 package Plack::Middleware::Auth::Htpasswd;
 BEGIN {
-  $Plack::Middleware::Auth::Htpasswd::VERSION = '0.01';
+  $Plack::Middleware::Auth::Htpasswd::VERSION = '0.02';
 }
 use strict;
 use warnings;
-use base 'Plack::Middleware';
-use Plack::Util::Accessor qw(realm file file_root);
+use base 'Plack::Middleware::Auth::Basic';
+use Plack::Util::Accessor qw(file file_root);
 use Plack::Request;
 
 use Authen::Htpasswd;
@@ -17,29 +17,10 @@ use Path::Class ();
 
 sub prepare_app {
     my $self = shift;
+    $self->authenticator(sub { $self->authenticate(@_) });
     die "must specify either file or file_root"
         unless defined $self->file || $self->file_root;
-}
-
-sub call {
-    my($self, $env) = @_;
-    my $auth = $env->{HTTP_AUTHORIZATION};
-    return $self->unauthorized
-        unless $auth && $auth =~ /^Basic (.*)$/;
-
-    my $auth_string = $1;
-    my ($user, $pass) = split /:/, (
-        MIME::Base64::decode($auth_string . '==') || ":"
-    );
-    $pass = '' unless defined $pass;
-
-    if ($self->authenticate($env, $user, $pass)) {
-        $env->{REMOTE_USER} = $user;
-        return $self->app->($env);
-    }
-    else {
-        return $self->unauthorized;
-    }
+    return $self->SUPER::prepare_app;
 }
 
 sub _check_password {
@@ -53,7 +34,7 @@ sub _check_password {
 
 sub authenticate {
     my $self = shift;
-    my ($env, $user, $pass) = @_;
+    my ($user, $pass, $env) = @_;
 
     return $self->_check_password($self->file, $user, $pass)
         if defined $self->file;
@@ -75,22 +56,6 @@ sub authenticate {
     return;
 }
 
-sub unauthorized {
-    my $self = shift;
-    my $body = 'Authorization required';
-    return [
-        401,
-        [
-            'Content-Type' => 'text/plain',
-            'Content-Length' => length $body,
-            'WWW-Authenticate' => 'Basic realm="'
-                                . ($self->realm || "restricted area")
-                                . '"'
-        ],
-        [ $body ],
-    ];
-}
-
 
 1;
 
@@ -103,7 +68,7 @@ Plack::Middleware::Auth::Htpasswd - http basic authentication through apache-sty
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 SYNOPSIS
 
@@ -157,8 +122,7 @@ Realm name to display in the basic authentication dialog. Defaults to
 Large parts of this code were modeled after (read: stolen from)
 L<Plack::Middleware::Auth::Basic> by Tatsuhiko Miyagawa.
 
-=for Pod::Coverage   unauthorized
-  authenticate
+=for Pod::Coverage   authenticate
 
 =head1 BUGS
 

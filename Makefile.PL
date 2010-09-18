@@ -23,9 +23,9 @@ my %WriteMakefileArgs = (
     'Authen::Htpasswd' => '0',
     'MIME::Base64' => '0',
     'Path::Class' => '0',
-    'Plack' => '0'
+    'Plack' => '0.9949'
   },
-  'VERSION' => '0.01',
+  'VERSION' => '0.02',
   'test' => {
     'TESTS' => 't/*.t'
   }
